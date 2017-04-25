@@ -56,6 +56,11 @@ armed = 0
 acro = 0
 rate = 2.5
 throttlemid = 100
+yawtrim = 0
+trimtoggle = 0
+rolltrim = 0
+pitchtrim = 0
+
 #Main class for reading the xbox controller values
 class XboxController(threading.Thread):
 
@@ -365,16 +370,43 @@ if __name__ == '__main__':
 
     #generic call back
     def controlCallBack(xboxControlId, value):
-        global armed, acro, rate,  throttlemid
+        global armed, acro, rate,  throttlemid,  trimtoggle,  yawtrim,  pitchtrim,  rolltrim
         print "Control Id = {}, Value = {}".format(xboxControlId, value)
         #Throttle
         if xboxControlId == 1: ser.write("1,{},".format(int(calculateThrottle(throttlemid,  value))))
+        # Trim throttle mid
+        if xboxControlId == 17:
+            if value[1] == 1:
+                throttlemid += 50
+                ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
+            if value[1] == -1:
+                throttlemid -= 50
+                ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
+            if value[0] == 1:
+                yawtrim += 3
+                ser.write("4,{},".format(1500 + yawtrim ))
+            if value[0] == -1:
+                yawtrim -= 3
+                ser.write("4,{},".format(1500 + yawtrim ))
         #Yaw
-        if xboxControlId == 0: ser.write("4,{},".format(1500 + int(value * 5)))
-        #Roll
-        if xboxControlId == 3: ser.write("2,{},".format(1500 - int(value * rate)))
-        #Pitch
-        if xboxControlId == 4: ser.write("3,{},".format(1500 - int((value - 50)* 2 * rate ))) 
+        if xboxControlId == 0: ser.write("4,{},".format(1500 + yawtrim + int(value * 5)))
+        if xboxControlId == 16:
+            trimtoggle = value;
+        if trimtoggle == 1:
+            #Roll
+            if xboxControlId == 3: 
+                rolltrim = int(value/2)
+                ser.write("2,{},".format(1500 - rolltrim))
+            #Pitch
+
+            if xboxControlId == 4: 
+                pitchtrim = int(((value - 50) * 2)/2)
+                ser.write("3,{},".format(1500 - pitchtrim)) 
+        else:
+            #Roll
+            if xboxControlId == 3: ser.write("2,{},".format((1500 - rolltrim) - int(value * rate)))
+            #Pitch
+            if xboxControlId == 4: ser.write("3,{},".format((1500 - pitchtrim) - int((value - 50)* 2 * rate ))) 
         #Toggle aux1 (Gear)
         if xboxControlId == 10:
            if value ==1:
@@ -395,15 +427,7 @@ if __name__ == '__main__':
             rate = 3.75
         if xboxControlId == 7:
             rate = 5
-        # Trim throttle mid
-        if xboxControlId == 17:
-            if value[1] == 1:
-                throttlemid += 50
-                ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
-            if value[1] == -1:
-                throttlemid -= 50
-                ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
- 
+
     #specific callbacks for the left thumb (X & Y)
 #    def leftThumbX(xValue):
 #        print "LX {}".format(xValue)
