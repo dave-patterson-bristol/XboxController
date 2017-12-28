@@ -83,8 +83,8 @@ class XboxController(threading.Thread):
         BACK = 12
         START = 13
         XBOX = 14
-        LEFTTHUMB = 15
-        RIGHTTHUMB = 16
+        LEFTTHUMB = 16
+        RIGHTTHUMB = 15
         DPAD = 17
 
     #pygame axis constants for the analogue controls of the xbox controller
@@ -109,6 +109,15 @@ class XboxController(threading.Thread):
         XBOX = 8
         LEFTTHUMB = 9
         RIGHTTHUMB = 10
+        
+        
+    class ControlChannels():
+        THROTTLE = 1
+        YAW = 4
+        ROLL = 3
+        PITCH = 2
+        AUX1 = 5
+        AUX6 = 6
 
     #map between pygame axis (analogue stick) ids and xbox control ids
     AXISCONTROLMAP = {PyGameAxis.LTHUMBX: XboxControls.LTHUMBX,
@@ -377,11 +386,13 @@ if __name__ == '__main__':
         # Trim throttle mid
         if xboxControlId == 17:
             if value[1] == 1:
-                throttlemid += 50
-                ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
+                if throttlemid < 700:
+                    throttlemid += 50
+                    ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
             if value[1] == -1:
-                throttlemid -= 50
-                ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
+                if throttlemid >= 100:
+                    throttlemid -= 50
+                    ser.write("1,{},".format(int(calculateThrottle(throttlemid,  0))))
             if value[0] == 1:
                 yawtrim += 3
                 ser.write("4,{},".format(1500 + yawtrim ))
@@ -389,8 +400,8 @@ if __name__ == '__main__':
                 yawtrim -= 3
                 ser.write("4,{},".format(1500 + yawtrim ))
         #Yaw
-        if xboxControlId == 0: ser.write("4,{},".format(1500 + yawtrim + int(value * 5)))
-        if xboxControlId == 16:
+        if xboxControlId == 0: ser.write("4,{},".format(1500 + yawtrim + int(value * rate)))
+        if xboxControlId == 15:
             trimtoggle = value;
         if trimtoggle == 1:
             #Roll
@@ -398,15 +409,14 @@ if __name__ == '__main__':
                 rolltrim = int(value/2)
                 ser.write("2,{},".format(1500 - rolltrim))
             #Pitch
-
-            if xboxControlId == 4: 
-                pitchtrim = int(((value - 50) * 2)/2)
-                ser.write("3,{},".format(1500 - pitchtrim)) 
+            if xboxControlId == 4:
+                pitchtrim = int((value-50)/2)
+                ser.write("3,{},".format(1500 - pitchtrim))
         else:
             #Roll
             if xboxControlId == 3: ser.write("2,{},".format((1500 - rolltrim) - int(value * rate)))
             #Pitch
-            if xboxControlId == 4: ser.write("3,{},".format((1500 - pitchtrim) - int((value - 50)* 2 * rate ))) 
+            if xboxControlId == 4: ser.write("3,{},".format((1500 - pitchtrim) - int(((value-50) *2) * rate))) 
         #Toggle aux1 (Gear)
         if xboxControlId == 10:
            if value ==1:
@@ -439,7 +449,7 @@ if __name__ == '__main__':
 
     #setup the left thumb (X & Y) callbacks
 #    xboxCont.setupControlCallback(xboxCont.XboxControls.LTHUMBX, leftThumbX)
-#    xboxCont.setupControlCallback(xboxCont.XboxControls.LTHUMBY, leftThumbY)
+#####    xboxCont.setupControlCallback(xboxCont.XboxControls.LTHUMBY, leftThumbY)
 
     try:
         #start the controller
